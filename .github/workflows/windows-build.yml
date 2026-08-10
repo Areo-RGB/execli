@@ -22,9 +22,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
-
       - name: Set up Node.js for legacy parity
         uses: actions/setup-node@v4
         with:
@@ -45,7 +42,7 @@ jobs:
         shell: pwsh
         run: dotnet test tests/ExecMcp.Tests/ExecMcp.Tests.csproj -c Release -r win-x64 --logger "trx;LogFileName=execmcp.trx"
 
-      - name: Publish unpackaged parity binaries
+      - name: Publish framework-dependent binaries
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts\publish\cli, artifacts\publish\callback | Out-Null
@@ -65,34 +62,18 @@ jobs:
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "cer=$($cert.Cer)" >> $env:GITHUB_OUTPUT
 
-      - name: Restore MSIX project with publish properties
+      - name: Build and sign MSIX with Windows SDK tools
         shell: pwsh
         run: |
-          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /t:Restore /m `
-            /p:Configuration=Release /p:Platform=x64 `
-            /p:RuntimeIdentifier=win-x64 /p:SelfContained=false
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\scripts\Build-Msix.ps1 `
+            -CliPublishPath artifacts\publish\cli `
+            -CallbackPublishPath artifacts\publish\callback `
+            -CertificateThumbprint '${{ steps.cert.outputs.thumbprint }}' `
+            -OutputPath artifacts\msix\ExecMcp.msix
 
-      - name: Build signed MSIX
+      - name: Install MSIX current-user
         shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force artifacts\msix | Out-Null
-          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /m `
-            /p:Configuration=Release /p:Platform=x64 /p:AppxBundle=Never `
-            /p:RuntimeIdentifier=win-x64 /p:SelfContained=false `
-            /p:UapAppxPackageBuildMode=SideloadOnly `
-            /p:PackageCertificateThumbprint=${{ steps.cert.outputs.thumbprint }} `
-            /p:AppxPackageDir="$((Resolve-Path artifacts\msix).Path)\"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Locate and install MSIX
-        id: package
-        shell: pwsh
-        run: |
-          $msix = Get-ChildItem artifacts\msix -Recurse -Filter *.msix | Select-Object -First 1
-          if (-not $msix) { throw 'MSIX was not produced' }
-          "msix=$($msix.FullName)" >> $env:GITHUB_OUTPUT
-          .\scripts\Install-ExecMcp.ps1 -MsixPath $msix.FullName -CertificatePath '${{ steps.cert.outputs.cer }}'
+        run: .\scripts\Install-ExecMcp.ps1 -MsixPath artifacts\msix\ExecMcp.msix -CertificatePath '${{ steps.cert.outputs.cer }}'
 
       - name: Verify installed alias and packaged identity
         shell: pwsh
@@ -119,7 +100,7 @@ jobs:
         with:
           name: execmcp-msix
           path: |
-            artifacts/msix/**/*.msix
+            artifacts/msix/ExecMcp.msix
             artifacts/cert/*.cer
             scripts/Install-ExecMcp.ps1
             scripts/Uninstall-ExecMcp.ps1
