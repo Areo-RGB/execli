@@ -8,7 +8,7 @@ namespace ExecMcp.Core;
 public sealed class WindowsJobObject : IDisposable
 {
     private const uint JobObjectAllAccess = 0x1F001F;
-    private const int JobObjectExtendedLimitInformation = 9;
+    private const int JobObjectExtendedLimitInformationClass = 9;
     private const uint JobObjectLimitKillOnJobClose = 0x00002000;
     private readonly SafeFileHandle _handle;
 
@@ -29,7 +29,7 @@ public sealed class WindowsJobObject : IDisposable
         try
         {
             Marshal.StructureToPtr(info, ptr, false);
-            if (!Native.SetInformationJobObject(handle, JobObjectExtendedLimitInformation, ptr, (uint)length))
+            if (!Native.SetInformationJobObject(handle, JobObjectExtendedLimitInformationClass, ptr, (uint)length))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "SetInformationJobObject failed");
         }
         finally { Marshal.FreeHGlobal(ptr); }
@@ -89,24 +89,24 @@ public sealed class WindowsJobObject : IDisposable
         public UIntPtr PeakJobMemoryUsed;
     }
 
-    private static partial class Native
+    private static class Native
     {
-        [LibraryImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-        internal static partial SafeFileHandle CreateJobObject(IntPtr jobAttributes, string? name);
+        [DllImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, CharSet = CharSet.Unicode)]
+        internal static extern SafeFileHandle CreateJobObject(IntPtr jobAttributes, string? name);
 
-        [LibraryImport("kernel32.dll", EntryPoint = "OpenJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-        internal static partial SafeFileHandle OpenJobObject(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, string name);
+        [DllImport("kernel32.dll", EntryPoint = "OpenJobObjectW", SetLastError = true, CharSet = CharSet.Unicode)]
+        internal static extern SafeFileHandle OpenJobObject(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, string name);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool SetInformationJobObject(SafeFileHandle job, int infoClass, IntPtr info, uint length);
+        internal static extern bool SetInformationJobObject(SafeFileHandle job, int infoClass, IntPtr info, uint length);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool AssignProcessToJobObject(SafeFileHandle job, SafeProcessHandle process);
+        internal static extern bool AssignProcessToJobObject(SafeFileHandle job, SafeProcessHandle process);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool TerminateJobObject(SafeFileHandle job, uint exitCode);
+        internal static extern bool TerminateJobObject(SafeFileHandle job, uint exitCode);
     }
 }
