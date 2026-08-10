@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectGuid>{8F23653B-7B66-4A63-B9AA-4FBD96CA63E8}</ProjectGuid>
+    <AssemblyName>ExecMcp.Core</AssemblyName>
+    <RootNamespace>ExecMcp.Core</RootNamespace>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+</Project>

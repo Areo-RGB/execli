@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectGuid>{D22D7D25-FD98-4E92-8FF5-E0B5C55B54EF}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>ExecMcp.SnippingCallback</AssemblyName>
+    <RootNamespace>ExecMcp.SnippingCallback</RootNamespace>
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ExecMcp.Core\ExecMcp.Core.csproj" />
+  </ItemGroup>
+</Project>
