@@ -3,7 +3,6 @@ name: Binary ZIP migration and Windows build
 on:
   push:
     branches: [csharp-port-zip]
-    paths: [project.zip]
 
 permissions:
   contents: write
