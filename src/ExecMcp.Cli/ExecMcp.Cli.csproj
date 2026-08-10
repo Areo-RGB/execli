@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectGuid>{7D0B0B45-C09C-44D5-9882-FA52404810E6}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>execmcp</AssemblyName>
+    <RootNamespace>ExecMcp.Cli</RootNamespace>
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ExecMcp.Core\ExecMcp.Core.csproj" />
+  </ItemGroup>
+</Project>

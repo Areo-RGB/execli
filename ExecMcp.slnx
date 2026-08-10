@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ExecMcp.Core/ExecMcp.Core.csproj" />
+    <Project Path="src/ExecMcp.Cli/ExecMcp.Cli.csproj" />
+    <Project Path="src/ExecMcp.SnippingCallback/ExecMcp.SnippingCallback.csproj" />
+    <Project Path="src/ExecMcp.Package/ExecMcp.Package.wapproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ExecMcp.Tests/ExecMcp.Tests.csproj" />
+  </Folder>
+</Solution>

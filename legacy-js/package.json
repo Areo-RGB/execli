@@ -1,0 +1,20 @@
+{
+  "name": "windows-exec-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows-first MCP command execution server and self-configuring CLI",
+  "type": "module",
+  "bin": {
+    "execmcp": "bin/execmcp.js"
+  },
+  "scripts": {
+    "start": "node src/main.js mcp",
+    "test": "node --test",
+    "check": "node --check src/main.js && node --check src/job-manager.js && node --check src/job-runner.js && node --check src/compiled-entry.js && node --check src/mcp-server.js && node --check src/cli.js",
+    "build:exe": "bun build --compile --target=bun-windows-x64 src/compiled-entry.js --outfile dist/execmcp.exe"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  }
+}
