@@ -54,16 +54,17 @@ jobs:
         shell: pwsh
         run: .\scripts\Compatibility.ps1 -Exe (Resolve-Path artifacts\publish\cli\execmcp-cs.exe) -Output artifacts\compatibility-unpackaged.json
 
-      - name: Generate development signing certificate
+      - name: Generate and trust development signing certificate
         id: cert
-        shell: pwsh
+        shell: powershell
         run: |
           $cert = .\scripts\New-DevCertificate.ps1 | ConvertFrom-Json
+          Import-Certificate -FilePath $cert.Cer -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "cer=$($cert.Cer)" >> $env:GITHUB_OUTPUT
 
       - name: Build and sign MSIX with Windows SDK tools
-        shell: pwsh
+        shell: powershell
         run: |
           .\scripts\Build-Msix.ps1 `
             -CliPublishPath artifacts\publish\cli `
@@ -72,18 +73,18 @@ jobs:
             -OutputPath artifacts\msix\ExecMcp.msix
 
       - name: Install MSIX current-user
-        shell: pwsh
+        shell: powershell
         run: .\scripts\Install-ExecMcp.ps1 -MsixPath artifacts\msix\ExecMcp.msix -CertificatePath '${{ steps.cert.outputs.cer }}'
 
       - name: Verify installed alias and packaged identity
-        shell: pwsh
+        shell: powershell
         run: |
           .\scripts\Verify-Package.ps1
           .\scripts\Compatibility.ps1 -Exe execmcp.exe -Output artifacts\compatibility-packaged.json
 
       - name: Uninstall test package
         if: always()
-        shell: pwsh
+        shell: powershell
         run: .\scripts\Uninstall-ExecMcp.ps1
 
       - name: Upload unpackaged parity artifact
