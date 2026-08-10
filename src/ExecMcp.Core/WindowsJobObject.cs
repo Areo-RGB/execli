@@ -8,6 +8,7 @@ namespace ExecMcp.Core;
 public sealed class WindowsJobObject : IDisposable
 {
     private const uint JobObjectAllAccess = 0x1F001F;
+    private const int JobObjectBasicProcessIdListClass = 3;
     private const int JobObjectExtendedLimitInformationClass = 9;
     private const uint JobObjectLimitKillOnJobClose = 0x00002000;
     private readonly SafeFileHandle _handle;
@@ -47,6 +48,28 @@ public sealed class WindowsJobObject : IDisposable
     {
         if (!Native.AssignProcessToJobObject(_handle, process.SafeHandle))
             throw new Win32Exception(Marshal.GetLastWin32Error(), $"AssignProcessToJobObject failed for PID {process.Id}");
+    }
+
+    public IReadOnlyList<int> GetProcessIds()
+    {
+        const int capacity = 1024;
+        const int headerBytes = sizeof(uint) * 2;
+        var bytes = checked(headerBytes + (IntPtr.Size * capacity));
+        var buffer = Marshal.AllocHGlobal(bytes);
+        try
+        {
+            if (!Native.QueryInformationJobObject(_handle, JobObjectBasicProcessIdListClass, buffer, (uint)bytes, out _))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "QueryInformationJobObject failed");
+            var count = Math.Min(Marshal.ReadInt32(buffer, sizeof(uint)), capacity);
+            var result = new List<int>(Math.Max(0, count));
+            for (var i = 0; i < count; i++)
+            {
+                var raw = Marshal.ReadIntPtr(buffer, headerBytes + (i * IntPtr.Size)).ToInt64();
+                if (raw is > 0 and <= int.MaxValue) result.Add((int)raw);
+            }
+            return result;
+        }
+        finally { Marshal.FreeHGlobal(buffer); }
     }
 
     public void Terminate(uint exitCode = 1)
@@ -100,6 +123,10 @@ public sealed class WindowsJobObject : IDisposable
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SetInformationJobObject(SafeFileHandle job, int infoClass, IntPtr info, uint length);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool QueryInformationJobObject(SafeFileHandle job, int infoClass, IntPtr info, uint length, out uint returnLength);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

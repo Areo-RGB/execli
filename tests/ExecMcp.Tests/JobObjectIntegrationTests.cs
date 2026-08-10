@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using ExecMcp.Core;
 namespace ExecMcp.Tests;
 
@@ -8,30 +7,41 @@ public sealed class JobObjectIntegrationTests
     [Fact]
     public async Task TerminatingJobObject_RemovesDescendantProcess()
     {
-        var root = Path.Combine(Path.GetTempPath(), "execmcp-tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        var pidFile = Path.Combine(root, "child.pid");
-        var script = $"Start-Sleep -Milliseconds 750; $p=Start-Process powershell.exe -ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru; Set-Content -LiteralPath '{pidFile.Replace("'", "''")}' -Value $p.Id -NoNewline; Wait-Process -Id $p.Id";
-        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
         using var parent = Process.Start(new ProcessStartInfo
         {
-            FileName = "powershell.exe",
+            FileName = "cmd.exe",
             UseShellExecute = false,
             CreateNoWindow = true,
-            ArgumentList = { "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded }
+            ArgumentList =
+            {
+                "/d", "/s", "/c",
+                "ping 127.0.0.1 -n 2 >nul & powershell.exe -NoLogo -NoProfile -NonInteractive -Command \"Start-Sleep -Seconds 30\""
+            }
         }) ?? throw new InvalidOperationException("Could not start parent process");
         using var job = WindowsJobObject.Create("test_" + Guid.NewGuid().ToString("N"));
         job.Assign(parent);
 
+        IReadOnlyList<int> members = [];
         var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!File.Exists(pidFile) && DateTime.UtcNow < deadline) await Task.Delay(50, TestContext.Current.CancellationToken);
-        Assert.True(File.Exists(pidFile), "The parent did not report its child PID");
-        var childPid = int.Parse(await File.ReadAllTextAsync(pidFile, TestContext.Current.CancellationToken));
+        while (DateTime.UtcNow < deadline)
+        {
+            members = job.GetProcessIds();
+            if (members.Count >= 2) break;
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Contains(parent.Id, members);
+        Assert.True(members.Count >= 2, $"Expected parent plus descendant in Job Object; found: {string.Join(',', members)}");
 
         job.Terminate(1);
         await parent.WaitForExitAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        await Task.Delay(150, TestContext.Current.CancellationToken);
-        Assert.False(IsRunning(childPid));
+        foreach (var pid in members)
+        {
+            var goneBy = DateTime.UtcNow.AddSeconds(5);
+            while (IsRunning(pid) && DateTime.UtcNow < goneBy)
+                await Task.Delay(50, TestContext.Current.CancellationToken);
+            Assert.False(IsRunning(pid), $"PID {pid} survived Job Object termination");
+        }
     }
 
     private static bool IsRunning(int pid)
