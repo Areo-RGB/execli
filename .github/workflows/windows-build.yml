@@ -1,0 +1,20 @@
+name: Windows build
+on:
+  push:
+    branches: [main, csharp-port]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test
+        if: ${{ hashFiles('tests/ExecMcp.Tests/ExecMcp.Tests.csproj') != '' }}
+        shell: pwsh
+        run: dotnet test tests/ExecMcp.Tests/ExecMcp.Tests.csproj -c Release --arch x64
