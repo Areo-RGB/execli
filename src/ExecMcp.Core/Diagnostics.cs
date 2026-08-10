@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 
 namespace ExecMcp.Core;
@@ -105,7 +104,7 @@ public static class PortInspector
     }
 }
 
-public static partial class PackageIdentity
+public static class PackageIdentity
 {
     private const int AppmodelErrorNoPackage = 15700;
     public static bool IsPackaged
@@ -118,9 +117,9 @@ public static partial class PackageIdentity
         }
     }
 
-    private static partial class Native
+    private static class Native
     {
-        [LibraryImport("kernel32.dll", EntryPoint = "GetCurrentPackageFullName")]
-        internal static partial int GetCurrentPackageFullName(ref uint packageFullNameLength, IntPtr packageFullName);
+        [DllImport("kernel32.dll", EntryPoint = "GetCurrentPackageFullName")]
+        internal static extern int GetCurrentPackageFullName(ref uint packageFullNameLength, IntPtr packageFullName);
     }
 }
