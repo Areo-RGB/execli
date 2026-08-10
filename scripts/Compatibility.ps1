@@ -39,3 +39,4 @@ $outputDirectory = Split-Path -Parent $Output
 if (-not [string]::IsNullOrWhiteSpace($outputDirectory)) { New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null }
 $results | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 -Path $Output
 if (-not $results.pass) { throw "Compatibility checks failed. Results: $($results | ConvertTo-Json -Depth 8 -Compress)" }
+exit 0
