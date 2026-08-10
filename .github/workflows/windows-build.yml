@@ -65,12 +65,21 @@ jobs:
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "cer=$($cert.Cer)" >> $env:GITHUB_OUTPUT
 
+      - name: Restore MSIX project with publish properties
+        shell: pwsh
+        run: |
+          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /t:Restore /m `
+            /p:Configuration=Release /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 /p:SelfContained=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build signed MSIX
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts\msix | Out-Null
-          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /restore /m `
+          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /m `
             /p:Configuration=Release /p:Platform=x64 /p:AppxBundle=Never `
+            /p:RuntimeIdentifier=win-x64 /p:SelfContained=false `
             /p:UapAppxPackageBuildMode=SideloadOnly `
             /p:PackageCertificateThumbprint=${{ steps.cert.outputs.thumbprint }} `
             /p:AppxPackageDir="$((Resolve-Path artifacts\msix).Path)\"
