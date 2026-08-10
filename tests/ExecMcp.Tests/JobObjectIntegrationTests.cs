@@ -24,13 +24,13 @@ public sealed class JobObjectIntegrationTests
         job.Assign(parent);
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!File.Exists(pidFile) && DateTime.UtcNow < deadline) await Task.Delay(50);
+        while (!File.Exists(pidFile) && DateTime.UtcNow < deadline) await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.True(File.Exists(pidFile), "The parent did not report its child PID");
-        var childPid = int.Parse(await File.ReadAllTextAsync(pidFile));
+        var childPid = int.Parse(await File.ReadAllTextAsync(pidFile, TestContext.Current.CancellationToken));
 
         job.Terminate(1);
-        await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
-        await Task.Delay(150);
+        await parent.WaitForExitAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.False(IsRunning(childPid));
     }
 

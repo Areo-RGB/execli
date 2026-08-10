@@ -7,7 +7,7 @@ public sealed class CliTests
     public async Task Help_DoesNotAdvertiseMcp()
     {
         using var stdout = new StringWriter(); using var stderr = new StringWriter();
-        var code = await CliApp.RunAsync(["--help"], stdout, stderr);
+        var code = await CliApp.RunAsync(["--help"], stdout, stderr, TestContext.Current.CancellationToken);
         Assert.Equal(0, code);
         Assert.DoesNotContain("execmcp mcp", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("run-config", stdout.ToString());
@@ -18,6 +18,6 @@ public sealed class CliTests
     public async Task Mcp_IsRejected()
     {
         using var stdout = new StringWriter(); using var stderr = new StringWriter();
-        await Assert.ThrowsAsync<ArgumentException>(() => CliApp.RunAsync(["mcp"], stdout, stderr));
+        await Assert.ThrowsAsync<ArgumentException>(() => CliApp.RunAsync(["mcp"], stdout, stderr, TestContext.Current.CancellationToken));
     }
 }

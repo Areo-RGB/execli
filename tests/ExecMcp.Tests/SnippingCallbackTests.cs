@@ -11,12 +11,12 @@ public sealed class SnippingCallbackTests
         Directory.CreateDirectory(root);
         var store = new SnippingCorrelationStore(Path.Combine(root, "correlations.json"));
         var id = Guid.NewGuid();
-        await store.AddAsync(id);
+        await store.AddAsync(id, TestContext.Current.CancellationToken);
         var handler = new CallbackHandler(store);
 
-        var code = await handler.HandleAsync(new Uri($"execmcp-snip://complete?code=499&reason=Cancelled&x-request-correlation-id={id}"));
+        var code = await handler.HandleAsync(new Uri($"execmcp-snip://complete?code=499&reason=Cancelled&x-request-correlation-id={id}"), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, code);
-        Assert.False(await store.ConsumeAsync(id));
+        Assert.False(await store.ConsumeAsync(id, TestContext.Current.CancellationToken));
     }
 }
