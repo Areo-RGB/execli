@@ -1,0 +1,64 @@
+name: Package project ZIP
+
+on:
+  push:
+    branches: [zip-source]
+    paths: [.github/workflows/package-project.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-handoff:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source project
+        uses: actions/checkout@v4
+        with:
+          ref: zip-source
+          path: source
+
+      - name: Create real binary project ZIP with 7-Zip
+        shell: pwsh
+        run: |
+          Push-Location source
+          7z a ..\project.zip .\* -xr!.git -xr!project.zip -xr!package-project.yml
+          Pop-Location
+          if (-not (Test-Path project.zip)) { throw 'project.zip was not created' }
+          7z l project.zip
+
+      - name: Verify ZIP contains important files
+        shell: pwsh
+        run: |
+          $listing = 7z l project.zip | Out-String
+          $required = @(
+            'ExecMcp.slnx',
+            'src\ExecMcp.Core\ExecMcp.Core.csproj',
+            'src\ExecMcp.Cli\ExecMcp.Cli.csproj',
+            'src\ExecMcp.SnippingCallback\ExecMcp.SnippingCallback.csproj',
+            'tests\ExecMcp.Tests\ExecMcp.Tests.csproj',
+            'src\ExecMcp.Package\Package.appxmanifest'
+          )
+          foreach ($path in $required) {
+            if ($listing -notmatch [regex]::Escape($path)) { throw "ZIP missing: $path" }
+          }
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: csharp-port-zip
+          path: target
+          fetch-depth: 0
+
+      - name: Upload binary ZIP to target branch
+        shell: pwsh
+        run: |
+          Copy-Item project.zip target\project.zip -Force
+          Push-Location target
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add project.zip
+          git commit -m 'chore: add binary project.zip for migration'
+          git push origin HEAD:csharp-port-zip
+          Pop-Location
