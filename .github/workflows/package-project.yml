@@ -23,7 +23,10 @@ jobs:
         shell: pwsh
         run: |
           Push-Location source
-          7z a ..\project.zip .\* -xr!.git -xr!project.zip -xr!package-project.yml
+          $files = git ls-files | Where-Object { $_ -ne '.github/workflows/package-project.yml' }
+          $files | Set-Content -Encoding utf8 files.txt
+          7z a ..\project.zip '@files.txt'
+          Remove-Item files.txt -Force
           Pop-Location
           if (-not (Test-Path project.zip)) { throw 'project.zip was not created' }
           7z l project.zip
