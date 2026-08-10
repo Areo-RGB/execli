@@ -1,0 +1,9 @@
+bin/
+obj/
+artifacts/
+TestResults/
+*.pfx
+*.cer
+*.msix
+*.msixbundle
+.vs/

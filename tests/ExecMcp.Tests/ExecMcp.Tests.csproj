@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectGuid>{B0E5C66A-AB20-4C17-9058-4F54BF9A3557}</ProjectGuid>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\ExecMcp.Core\ExecMcp.Core.csproj" />
+    <ProjectReference Include="..\..\src\ExecMcp.Cli\ExecMcp.Cli.csproj" />
+    <ProjectReference Include="..\..\src\ExecMcp.SnippingCallback\ExecMcp.SnippingCallback.csproj" />
+  </ItemGroup>
+</Project>

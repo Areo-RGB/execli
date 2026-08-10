@@ -1,0 +1,5 @@
+{
+  "run": ["id", "state", "pid", "runner_pid", "exit_code", "signal", "error", "shell", "executable", "args", "command", "cwd", "created_at", "started_at", "finished_at", "timeout_ms", "stdout_bytes", "stderr_bytes", "stdout_tail", "stderr_tail", "stdout", "stderr"],
+  "start": ["id", "state", "pid", "runner_pid", "exit_code", "signal", "error", "shell", "executable", "args", "command", "cwd", "created_at", "started_at", "finished_at", "timeout_ms", "stdout_bytes", "stderr_bytes", "stdout_tail", "stderr_tail", "ready"],
+  "output": ["id", "stream", "offset", "next_offset", "bytes", "eof", "text", "full_bytes", "tail_bytes", "tail_start_offset"]
+}
