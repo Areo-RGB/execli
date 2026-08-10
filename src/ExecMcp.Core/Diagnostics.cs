@@ -99,6 +99,7 @@ public static class PortInspector
 
     private static bool TryEndpointPort(string endpoint, out int port)
     {
+        port = 0;
         var index = endpoint.LastIndexOf(':');
         return index >= 0 && int.TryParse(endpoint[(index + 1)..], out port);
     }

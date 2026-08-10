@@ -152,10 +152,11 @@ public static class ShellBuilder
 {
     public static LaunchSpec Build(NormalizedCommand command)
     {
-        var env = Environment.GetEnvironmentVariables()
-            .Cast<System.Collections.DictionaryEntry>()
-            .Where(entry => entry.Key is string && entry.Value is string)
-            .ToDictionary(entry => (string)entry.Key, entry => (string)entry.Value, StringComparer.OrdinalIgnoreCase);
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+        {
+            if (entry.Key is string key && entry.Value is string value) env[key] = value;
+        }
         foreach (var pair in command.Env) env[pair.Key] = pair.Value;
 
         if (command.Shell == ShellKind.None)
