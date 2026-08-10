@@ -1,20 +1,127 @@
 name: Windows build
+
 on:
-  push:
-    branches: [main, csharp-port]
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  test:
+  full-windows-build:
     runs-on: windows-2025
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Test
-        if: ${{ hashFiles('tests/ExecMcp.Tests/ExecMcp.Tests.csproj') != '' }}
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Set up Node.js for legacy parity
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up pnpm for legacy parity
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Test legacy JavaScript reference
         shell: pwsh
-        run: dotnet test tests/ExecMcp.Tests/ExecMcp.Tests.csproj -c Release --arch x64
+        run: |
+          pnpm --dir legacy-js install --no-frozen-lockfile
+          pnpm --dir legacy-js test
+
+      - name: Test C# implementation
+        shell: pwsh
+        run: dotnet test tests/ExecMcp.Tests/ExecMcp.Tests.csproj -c Release -r win-x64 --logger "trx;LogFileName=execmcp.trx"
+
+      - name: Publish unpackaged parity binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts\publish\cli, artifacts\publish\callback | Out-Null
+          dotnet publish src/ExecMcp.Cli/ExecMcp.Cli.csproj -c Release -r win-x64 --self-contained false -o artifacts\publish\cli
+          dotnet publish src/ExecMcp.SnippingCallback/ExecMcp.SnippingCallback.csproj -c Release -r win-x64 --self-contained false -o artifacts\publish\callback
+          Copy-Item artifacts\publish\cli\execmcp.exe artifacts\publish\cli\execmcp-cs.exe
+
+      - name: Verify unpackaged CLI compatibility
+        shell: pwsh
+        run: .\scripts\Compatibility.ps1 -Exe (Resolve-Path artifacts\publish\cli\execmcp-cs.exe) -Output artifacts\compatibility-unpackaged.json
+
+      - name: Generate development signing certificate
+        id: cert
+        shell: pwsh
+        run: |
+          $cert = .\scripts\New-DevCertificate.ps1 | ConvertFrom-Json
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+          "cer=$($cert.Cer)" >> $env:GITHUB_OUTPUT
+
+      - name: Build signed MSIX
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts\msix | Out-Null
+          msbuild src\ExecMcp.Package\ExecMcp.Package.wapproj /restore /m `
+            /p:Configuration=Release /p:Platform=x64 /p:AppxBundle=Never `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:PackageCertificateThumbprint=${{ steps.cert.outputs.thumbprint }} `
+            /p:AppxPackageDir="$((Resolve-Path artifacts\msix).Path)\"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Locate and install MSIX
+        id: package
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem artifacts\msix -Recurse -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw 'MSIX was not produced' }
+          "msix=$($msix.FullName)" >> $env:GITHUB_OUTPUT
+          .\scripts\Install-ExecMcp.ps1 -MsixPath $msix.FullName -CertificatePath '${{ steps.cert.outputs.cer }}'
+
+      - name: Verify installed alias and packaged identity
+        shell: pwsh
+        run: |
+          .\scripts\Verify-Package.ps1
+          .\scripts\Compatibility.ps1 -Exe execmcp.exe -Output artifacts\compatibility-packaged.json
+
+      - name: Uninstall test package
+        if: always()
+        shell: pwsh
+        run: .\scripts\Uninstall-ExecMcp.ps1
+
+      - name: Upload unpackaged parity artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: execmcp-cs-unpackaged
+          path: artifacts/publish/cli
+          if-no-files-found: error
+
+      - name: Upload signed MSIX and public certificate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: execmcp-msix
+          path: |
+            artifacts/msix/**/*.msix
+            artifacts/cert/*.cer
+            scripts/Install-ExecMcp.ps1
+            scripts/Uninstall-ExecMcp.ps1
+          if-no-files-found: error
+
+      - name: Upload compatibility results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-results
+          path: |
+            artifacts/compatibility-*.json
+            **/TestResults/*.trx
+          if-no-files-found: warn
