@@ -25,9 +25,7 @@
           </uap3:AppExecutionAlias>
         </uap3:Extension>
         <uap3:Extension Category="windows.protocol" Executable="ExecMcp.SnippingCallback.exe" EntryPoint="Windows.FullTrustApplication">
-          <uap3:Protocol Name="execmcp-snip" Parameters="&quot;%1&quot;">
-            <uap3:DisplayName>ExecMCP Snipping Callback</uap3:DisplayName>
-          </uap3:Protocol>
+          <uap3:Protocol Name="execmcp-snip" Parameters="&quot;%1&quot;" />
         </uap3:Extension>
       </Extensions>
     </Application>
