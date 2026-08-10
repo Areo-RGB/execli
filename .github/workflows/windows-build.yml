@@ -60,6 +60,7 @@ jobs:
         run: |
           $cert = .\scripts\New-DevCertificate.ps1 | ConvertFrom-Json
           Import-Certificate -FilePath $cert.Cer -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+          Import-Certificate -FilePath $cert.Cer -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
           "cer=$($cert.Cer)" >> $env:GITHUB_OUTPUT
 
